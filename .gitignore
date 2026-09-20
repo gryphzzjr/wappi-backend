@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Type checking
+.mypy_cache/
+.pyright/
+.ruff_cache/
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+
+# Local storage
+storage/
+uploads/
+
+# Jupyter
+.ipynb_checkpoints/
