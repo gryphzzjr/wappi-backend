@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 from app.core.security import get_current_user
 from app.services.supabase import supabase, supabase_admin
@@ -13,9 +13,9 @@ router = APIRouter(
 
 class RegisterRequest(BaseModel):
     email: EmailStr
-    password: str
-    name: str
-    phone: str | None = None
+    password: str = Field(min_length=6)
+    name: str = Field(min_length=2, max_length=100)
+    phone: str | None = Field(default=None, max_length=30)
 
 
 class LoginRequest(BaseModel):
@@ -26,20 +26,13 @@ class LoginRequest(BaseModel):
 @router.post("/register")
 async def register(data: RegisterRequest):
     try:
-        # =========================================================
-        # CRIA USUÁRIO NO SUPABASE AUTH
-        #
-        # O trigger on_auth_user_created cria automaticamente
-        # o registro correspondente em public.clients.
-        # =========================================================
-
         response = supabase.auth.sign_up(
             {
                 "email": data.email,
                 "password": data.password,
                 "options": {
                     "data": {
-                        "name": data.name,
+                        "name": data.name.strip(),
                         "phone": data.phone,
                     }
                 },
@@ -54,12 +47,6 @@ async def register(data: RegisterRequest):
                 status_code=400,
                 detail="Não foi possível criar a conta.",
             )
-
-        # =========================================================
-        # O TRIGGER JÁ CRIOU O CLIENTE.
-        #
-        # Aqui apenas buscamos o registro criado.
-        # =========================================================
 
         client_response = (
             supabase_admin
@@ -78,23 +65,15 @@ async def register(data: RegisterRequest):
 
         client = client_response.data[0]
 
-        # =========================================================
-        # ATUALIZA O TELEFONE
-        #
-        # O trigger atualmente cria:
-        # user_id, name e email.
-        #
-        # Como phone não faz parte do INSERT do trigger,
-        # atualizamos depois usando o client administrativo.
-        # =========================================================
-
         if data.phone:
             phone_response = (
                 supabase_admin
                 .table("clients")
-                .update({
-                    "phone": data.phone,
-                })
+                .update(
+                    {
+                        "phone": data.phone,
+                    }
+                )
                 .eq("user_id", user.id)
                 .execute()
             )
@@ -124,7 +103,10 @@ async def register(data: RegisterRequest):
 
         error_message = str(error).lower()
 
-        if "already registered" in error_message:
+        if (
+            "already registered" in error_message
+            or "already exists" in error_message
+        ):
             raise HTTPException(
                 status_code=400,
                 detail="Este e-mail já está cadastrado.",
@@ -139,10 +121,6 @@ async def register(data: RegisterRequest):
 @router.post("/login")
 async def login(data: LoginRequest):
     try:
-        # =========================================================
-        # LOGIN NO SUPABASE AUTH
-        # =========================================================
-
         response = supabase.auth.sign_in_with_password(
             {
                 "email": data.email,
@@ -159,10 +137,6 @@ async def login(data: LoginRequest):
                 detail="E-mail ou senha inválidos.",
             )
 
-        # =========================================================
-        # BUSCA O CLIENTE DO USUÁRIO
-        # =========================================================
-
         client_response = (
             supabase_admin
             .table("clients")
@@ -174,8 +148,8 @@ async def login(data: LoginRequest):
 
         if not client_response.data:
             raise HTTPException(
-                status_code=403,
-                detail="Sua conta ainda não possui um cliente Wappi.",
+                status_code=404,
+                detail="Cliente não encontrado.",
             )
 
         return {
@@ -211,10 +185,6 @@ async def get_me(
     user: dict = Depends(get_current_user),
 ):
     try:
-        # =========================================================
-        # BUSCA O CLIENTE DO USUÁRIO AUTENTICADO
-        # =========================================================
-
         response = (
             supabase_admin
             .table("clients")

@@ -5,14 +5,9 @@ from app.core.config import settings
 from app.routers import (
     auth,
     bots,
-    conversations,
-    files,
-    integrations,
     mercado_pago,
-    subscriptions,
-    training,
     webhooks,
-    whatsapp,
+    conversations
 )
 
 
@@ -75,11 +70,6 @@ async def health():
 
 app.include_router(auth.router)
 app.include_router(bots.router)
-app.include_router(conversations.router)
-app.include_router(files.router)
-app.include_router(integrations.router)
 app.include_router(mercado_pago.router)
-app.include_router(subscriptions.router)
-app.include_router(training.router)
 app.include_router(webhooks.router)
-app.include_router(whatsapp.router)
+app.include_router(conversations.router)
